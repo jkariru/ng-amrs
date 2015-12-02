@@ -1,23 +1,24 @@
 /*
-jshint -W003, -W026
+jshint -W003, -W026, -W117, -W098
 */
+/*jscs:disable safeContextKeyword, requireDotNotation, requirePaddingNewLinesBeforeLineComments, requireTrailingComma*/
 (function() {
-    'use strict';
+  'use strict';
 
-    angular
+  angular
         .module('app.patientdashboard')
             .directive('currentVisit', directive);
 
-    function directive() {
+  function directive() {
       return {
         restrict: 'E',
-        scope: { patientUuid: "@" },
+        scope: { patientUuid: '@' },
         templateUrl: 'views/patient-dashboard/current-visit.html',
         controller: currentVisitController
-      }
+      };
     }
 
-    currentVisitController.$inject = [
+  currentVisitController.$inject = [
         '$scope',
         '$rootScope',
         'VisitResService',
@@ -28,13 +29,15 @@ jshint -W003, -W026
         '$timeout',
         '$location',
         'dialogs'
-    ];
+  ];
 
-    function currentVisitController($scope, $rootScope, vService, $stateParams,
+  function currentVisitController($scope, $rootScope, vService, $stateParams,
                                     encService, encModel, $filter, $timeout,
                                     $location, dialogs) {
+
         $scope.currentVisit = initializeCurrentVisit();
-        $scope.busy = true;
+        $scope.loadingVisitTypes = true;
+        $scope.checkingIfVisitStarted = true;
         $scope.visitTypesLoaded = false;
         $scope.formsFilledStatus = [];
         
@@ -53,10 +56,7 @@ jshint -W003, -W026
                  startDatetime: getFormattedDate($scope.currentVisit.startDatetime)
              };
 
-             $scope.busy = true;
-
              vService.saveVisit(newVisit, function(data) {
-                 $scope.busy = false;
                  $scope.currentVisit.uuid = data.uuid;
                  $scope.visitStarted = true;
                  console.info('New visit instance created');
@@ -111,29 +111,11 @@ jshint -W003, -W026
              });
          }
          
-         $timeout(function checkIfVisitStarted() {
+         $scope.$evalAsync(function checkIfVisitStarted(tryCount) {
+             var tryCount = tryCount || 1;      //Try 10 times before failing 
              console.info('Checking whether visit has started');
-              var simpleVisitRep = 'custom:(uuid,patient:(uuid,uuid),' +
-                      'visitType:(uuid,name),location:ref,startDatetime,' +
-                      'stopDatetime)';
-              var params = {
-                  patientUuid: $scope.patientUuid,
-                  v: simpleVisitRep
-              }
-              vService.getPatientVisits(params, function(visits) {
-                  //Get todays
-                  var dFormat = 'yyyy-MM-dd';
-                  var today = getFormattedDate(Date.now(), dFormat);
-                  var todayVisits = [];
-                  function formatted(gDate) {
-                      return getFormattedDate(new Date(gDate), dFormat);
-                  }
-                  _.each(visits, function(visit) {
-                     if(today === formatted(visit.startDatetime)) {
-                         todayVisits.push(visit);
-                     } 
-                  });
-                  
+             $scope.checkingIfVisitStarted = true;
+             __getTodayVisits($scope.patientUuid, function(todayVisits) {
                   if(todayVisits.length > 0) {
                       console.info('Patient with uuid ', $scope.patientUuid,
                         ' has visit started');
@@ -147,28 +129,50 @@ jshint -W003, -W026
                       }
                       
                       //Load associated encounters
-                      fetchVisitCompletedEncounters($scope.currentVisit.uuid);
+                      __fetchVisitCompletedEncounters($scope.currentVisit.uuid);
                   } else {
                       console.info('No visit started yet');
                       $scope.visitStarted = false;
                   }
-                  $scope.busy = false;
-              }, function(error) {
-                  console.error('Error: An error occured while loading visits ',
-                              'patient with uuid ', $scope.patientUuid);
+                  $scope.checkingIfVisitStarted = false;
+              }, function(err) {
+                  if(tryCount === 5) { 
+                      $scope.checkingIfVisitStarted = false;
+                      $scope.errorLoadingPatientVisits = true;
+                      console.error('Error: An error occured while loading visits ',
+                                  'patient with uuid ', $scope.patientUuid);
+                      console.trace(err.message());
+                  } else {
+                      //Retry
+                      checkIfVisitStarted(++tryCount);
+                  }
               });
-          },1000);
+         });
 
-          $timeout(function loadVisitTypes() {
+          $scope.$evalAsync(function __loadVisitTypes(tryCount) {
+              var tryCount = tryCount || 1;
               vService.getVisitTypes(function(data) {
                   $scope.visitTypes = data;
                   $scope.visitTypesLoaded = true;
+                  $scope.loadingVisitTypes = false;
+              }, function(err) {
+                  if(tryCount === 5) {
+                      // Fail
+                      $scope.loadingVisitTypes = false;
+                      $scope.errorLoadingVisitTypes = true;
+                      console.log('Failed to load visit types');
+                      console.trace(err.message);
+                  } else {
+                      // Retry
+                      __loadVisitTypes(++tryCount);
+                  }
               });
-          },1000);
+          });
 
          // Function to load saved encounters if visit started
-         function fetchVisitCompletedEncounters(visitUuid) {
-             $scope.busy = true;
+         function __fetchVisitCompletedEncounters(visitUuid, tryCount) {
+             var tryCount = tryCount || 1;
+             $scope.loadingEncounters = true;
              vService.getVisitEncounters(visitUuid, function(visitEncounters) {
                  if(visitEncounters.length > 0) {
                      $scope.currentVisit.hasCompletedEncounters = true;
@@ -185,8 +189,49 @@ jshint -W003, -W026
                         }
                      });
                 }
-                $scope.busy = false;
-             });
+                $scope.loadingEncounters = false;
+            }, function(err) {
+                if(tryCount === 5) {
+                    $scope.errorLoadingEncounters = true;
+                    console.log('Error loading visit encounters for visit uuid ',
+                     visitUuid);
+                    console.trace(err.message());
+                } else {
+                    // Retry
+                    __fetchVisitCompletedEncounters(visitUuid, ++tryCount);
+                }
+            });
+         }
+         
+         // Function to load Patient's today's visits if any.
+         function __getTodayVisits(patientUuid, callback, errorCallback) {
+             var simpleVisitRep = 'custom:(uuid,patient:(uuid,uuid),' +
+                     'visitType:(uuid,name),location:ref,startDatetime,' +
+                     'stopDatetime)';
+             var params = {
+                 patientUuid: patientUuid,
+                 v: simpleVisitRep
+             };
+             console.info('vService ni ...', vService);
+             vService.getPatientVisits(params, function(visits) {
+                 //Get todays
+                 var dFormat = 'yyyy-MM-dd';
+                 var today = getFormattedDate(Date.now(), dFormat);
+                 var todayVisits = [];
+                 function formatted(gDate) {
+                     return getFormattedDate(new Date(gDate), dFormat);
+                 }
+                 _.each(visits, function(visit) {
+                    if(today === formatted(visit.startDatetime)) {
+                        todayVisits.push(visit);
+                    } 
+                 });
+                 if(typeof callback === 'function') {
+                     callback(todayVisits);
+                 } else {
+                     console.log('No callback function has been passed');
+                 }
+             }, errorCallback);
          }
          
          //Format date
@@ -212,5 +257,5 @@ jshint -W003, -W026
                  hasCompletedEncounters: false
              };
          }
-    }
+  }
 })();
