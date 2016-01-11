@@ -11,8 +11,9 @@
 
     function moh731ReportCtrl($rootScope,$scope,$stateParams,EtlRestService,moment,$filter,$state,Moh731ReportService,CachedDataService){
         //Patient List Directive Properties & Methods
-        $scope.startDate=new Date("January 1, 2015 12:00:00");
         $scope.endDate=new Date();
+        $scope.startDate=new Date(moment().subtract(1,'months').calendar());
+
         $scope.selectedLocation=$stateParams.locationuuid||'';
         $scope.selectedIndicatorBox=$stateParams.indicator||'';
         $scope.selectedSearchLocations=[];
@@ -78,14 +79,12 @@
         }
         $scope.$on('generate-moh-731-pdf-report',function(event,args){
 
-            //console.log("Row selected",$rootScope.selectedPdfRow);
+
             generateMoh731PdfReport($rootScope.selectedPdfRow.location,$rootScope.selectedPdfRow)
         });
         function buildColumns(){
             $scope.columns=[];
-            $scope.titles=['Location','unscheduled_visits','on_art','starting_art_total','on_pcp_prophylaxis'
-                        ,'condoms_provided',
-                'using_modern_contracept_methods','female_gte_18yo_visits',];
+            $scope.titles=[];
             _.each($scope.titles,function(header){
                 var visible=(header.location_uuid!=='location_uuid');
                 var checkbox=(header.name==='state');
@@ -216,17 +215,13 @@
             },[]);
 
             //final  report  schema
-            //  console.log('The  Final Report Schema>>>>>',mainReportjson);
+
 
             pdfMake.createPdf(mainReportjson).open();
 
         }
 
-
-
-
         function loadIndicatorsSchema(){
-
             $scope.experiencedLoadingErrors=false;
             if($scope.isBusy===true)return;
             $scope.indicatorTags=[];
@@ -316,26 +311,76 @@
 
                     }
                 },[]);
-                //boostrap  was  here
-                //update table columns
-                angular.forEach($scope.TableData[0],function(actualValue,actualkey){
 
-                    if(angular.isDefined(actualkey)){
-                        if(actualkey!=="location_uuid"){
-                            $scope.columns.push({
-                                field:actualkey,
-                                title:actualkey,
-                                align:'center',
-                                valign:'bottom',
-                                tooltip:true,
-                                formatter:function(value,row,index){
-                                    return cellFormatter(value,row,index,actualkey);
-                                }
-                            });
+                //start  of variable  names  to  label  names  change  on the  report  table
+                //generate Pdf  report 
+                $scope.indicatorNumber=0;
+                $scope.sectionNumber=0;
+                //$scope.indicatorNumber=0;
+                angular.forEach(Moh731ReportService.getPdfSections(),function(sectionData,key){
+                    //get section labels  and  data1
+                    var el=0;
+                    $scope.sectionLabel=[];
+                    $scope.sectionValues=[];
+                    angular.forEach(sectionData,function(sectionLabel,key){
+
+
+                        if(angular.isDefined(sectionLabel)&&angular.isDefined(Moh731ReportService.getPdfSectionsKeys()[$scope.sectionNumber])){
+                            //   console.log("Lebel is defined")
+                            if(el==0){
+                                //inject  fixed  location  column
+                                sectionLabel="Location";
+                                var actualKey='location'
+                            }else{
+                                var actualKey=Moh731ReportService.getPdfSectionsKeys()[$scope.sectionNumber][el];
+                            }
+                            if(sectionLabel!=="location_uuid"){
+
+                                $scope.columns.push({
+                                    field:actualKey,
+                                    title:sectionLabel,
+                                    align:'center',
+                                    valign:'bottom',
+                                    tooltip:true,
+                                    formatter:function(value,row,index){
+
+                                        return cellFormatter(value,row,index,actualKey);
+
+                                    }
+                                });
+                            }
+
                         }
 
-                    }
+
+                        $scope.indicatorNumber++;
+
+                        el++;
+                    },[]);
+//add section  number
+
+                    $scope.sectionNumber++;
                 },[]);
+                //end    of  the  change
+                //update table columns
+//                angular.forEach($scope.TableData[0],function(actualValue,actualkey){
+//
+//                    if(angular.isDefined(actualkey)){
+//                        if(actualkey!=="location_uuid"){
+//                            $scope.columns.push({
+//                                field:actualkey,
+//                                title:actualkey,
+//                                align:'center',
+//                                valign:'bottom',
+//                                tooltip:true,
+//                                formatter:function(value,row,index){
+//                                    return cellFormatter(value,row,index,actualkey);
+//                                }
+//                            });
+//                        }
+//
+//                    }
+//                },[]);
 
 
                 $scope.dataSortedByLocation=null;
@@ -405,8 +450,8 @@
                 $rootScope.selectedPdfIndex=index;
             });
             var html=[];
-             html.push('<div class="well well-sm " style="padding:2px; margin-bottom: 5px !important; ">'+
-                        '<a href="#/moh-731-generate-pdf" class="btn btn-info">Generate Pdf</a></div>');
+            html.push('<div class="well well-sm " style="padding:2px; margin-bottom: 5px !important; ">'+
+                    '<a href="#/moh-731-generate-pdf" class="btn btn-info">Generate Pdf</a></div>');
             _.each(row,function(value,key){
                 if(key==='location_uuid'||key==='state')return;
                 var label="label";
@@ -416,7 +461,7 @@
                         '<p><b>'+key+'</b></p>'+value+'</div>');
             });
             //adding a get pdf  report  link
-                return html.join('');
+            return html.join('');
         }
 
         /**
@@ -424,15 +469,17 @@
          */
 
         function cellFormatter(value,row,index,header){
-            // console.log(row[header],"Incoming  row  data using header"+header);
+
             if(header==="Location"){
                 // console.log(CachedDataService.getCachedEtlLocations()[row["location_uuid"]],"resolved location");
                 return  CachedDataService.getCachedEtlLocations()[row["location_uuid"]].name
 
             }else{
                 if(row[header]===undefined){
+
                     return "-";
                 }else{
+
                     return ['<a class="btn btn-large btn-default" style="padding: inherit; width:100%; max-width: 300px">'+row[header]+'</a>'];
                 }
                 // return ;
