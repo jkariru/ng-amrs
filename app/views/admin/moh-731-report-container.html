@@ -70,14 +70,13 @@
     }
 
 </style>
-<!--MOH 731 Report Html Table-->
-
-<!--End MOH 731 Report Html Table-->
+<h3 ng-show="groupBy!==''">
+   Combined report for Locations{{location_summary}}
+</h3>
 
 <!--MOH 731 DataTable -->
   <!-- DATATABLE -->
   <div >
-
     <div id="toolbar">
       <select ng-model='exportDataType' style="margin-left: 5px" class="form-control"
         ng-options="l.name for l in exportList" ng-change="updateSelectedType()">

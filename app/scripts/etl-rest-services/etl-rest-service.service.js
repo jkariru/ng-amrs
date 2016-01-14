@@ -583,9 +583,9 @@
         }
 
 
-        function getMoh731Report(report,startDate,endDate,locations,countBy,successCallback,failedCallback){
+        function getMoh731Report(report,startDate,endDate,locations,countBy,successCallback,failedCallback,groupBy){
             var resource=getResource('get-report-by-report-name');
-            var params={startDate:startDate,endDate:endDate,locations:locations.toString(),countBy:countBy,report:report};
+            var params={startDate:startDate,endDate:endDate,locations:locations.toString(),countBy:countBy,report:report,groupBy:groupBy};
             return resource.get(params).$promise
                     .then(function(response){
                         successCallback(response);

@@ -20,8 +20,9 @@
         $scope.reportGeneration=false;
         $scope.reportName='MOH-731';
         $scope.countBy='num_persons';
+        $scope.groupBy='';
         $scope.dataSortedByLocation=[];
-
+        $scope.selectedSearchLocationsTitle=[];
         $scope.reportData=[];
         $scope.getReportData=getReportData;
         $scope.LocationData={};
@@ -196,7 +197,7 @@
                     if(el!==0){
                         $scope.sectionLabel.push([sectionLabel]);
                         //push section  data
-                                     $scope.datavalue="";
+                        $scope.datavalue="";
                         if(angular.isDefined(rowData[Moh731ReportService.getPdfSectionsKeys()[$scope.sectionNumber][el]]))
                         {
                             $scope.datavalue=rowData[Moh731ReportService.getPdfSectionsKeys()[$scope.sectionNumber][el]];
@@ -256,6 +257,24 @@
             $scope.experiencedLoadingErrors=false;
             $scope.noresults=false;
             $scope.reportGeneration=false;
+            if($scope.groupBy!==''){
+                //create the summery location name
+                var rec=0;
+                $scope.location_summary="";
+                _.each($scope.selectedSearchLocationsTitle,function(location){
+                    if(rec===0){
+                        if($scope.selectedSearchLocations.length>1){
+                        $scope.location_summary+=location+",";
+                        }else{
+                         $scope.location_summary+=location;
+                        }
+                       
+                    }else{
+                        $scope.location_summary+=","+location;
+                    }
+                    rec++;
+                });
+            }
             if($scope.isBusy===true)
                 return;
             $scope.isBusy=true;
@@ -264,7 +283,7 @@
                     &&$scope.startDate&&$scope.startDate!=='')
                 EtlRestService.getMoh731Report($scope.reportName,moment(new Date($scope.startDate)).startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSSZZ'),
                         moment(new Date($scope.endDate)).startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSSZZ'),
-                        $scope.selectedSearchLocations,$scope.countBy,onFetchMoh731ReportSuccess,onFetchMoh731ReportError);
+                        $scope.selectedSearchLocations,$scope.countBy,onFetchMoh731ReportSuccess,onFetchMoh731ReportError,$scope.groupBy);
         }
 
         function onFetchMoh731ReportSuccess(result){
@@ -281,16 +300,16 @@
                     //test location  of  the  result  row
 
                     if(angular.isDefined($scope.dataSortedByLocation[resultRow.location_uuid])){
-                          $scope.dataSortedByLocation[resultRow.location_uuid].push(resultRow)
+                        $scope.dataSortedByLocation[resultRow.location_uuid].push(createSummaryLocationName(resultRow));
                     }else{
-                           $scope.dataSortedByLocation[resultRow.location_uuid]=[];
-                        $scope.dataSortedByLocation[resultRow.location_uuid].push(resultRow);
+                        $scope.dataSortedByLocation[resultRow.location_uuid]=[];
+                        $scope.dataSortedByLocation[resultRow.location_uuid].push(createSummaryLocationName(resultRow));
                     }
                 },[]);
                 //processs dataSortedLocation
                 angular.forEach($scope.dataSortedByLocation,function(LocationRow,key){
-                      $scope.LocationData[key]={};
-                      angular.forEach(LocationRow,function(LocationObjects,key2){
+                    $scope.LocationData[key]={};
+                    angular.forEach(LocationRow,function(LocationObjects,key2){
                         angular.forEach(LocationObjects,function(actualValue,actualkey){
                             $scope.LocationData[key][actualkey]=actualValue;
                         },[]);
@@ -455,6 +474,19 @@
                 // return ;
             }
 
+        }
+
+        function createSummaryLocationName(resultRow){
+            //test if  groupBy  is not '',if true change location name
+            try{
+                if($scope.groupBy!==''){
+                    resultRow["location"]=$scope.selectedSearchLocations.length+"Locations Combined";
+                }
+            }catch(e){
+                console.log(e)
+            }
+
+            return resultRow;
         }
 
 

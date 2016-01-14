@@ -36,6 +36,8 @@
         $scope.selectAllEncounterTypes=selectAllEncounterTypes;
         $scope.locationSelected=locationSelected;
         $scope.handleSelectAllTongle=handleSelectAllTongle;
+        $scope.summerizeLocationsToogle=summerizeLocationsToogle;
+        $scope.summerize_location=false;
 
 
         $scope.providers=[];
@@ -112,14 +114,14 @@
             $scope.isBusy=false;
             console.log("error on locations called");
             //$scope.$parent.experiencedLoadingErrors=true;
-           // $scope.experiencedLoadingErrors=true;
+            // $scope.experiencedLoadingErrors=true;
         }
         function wrapLocations(locations){
             var wrappedLocations=[];
             var locationsFetched=1;
             for(var i=0;i<locations.length;i++){
                 locationService.getLocationByUuidFromEtlOrCatch(locations[i].uuid,true,function(success){
-                  //  console.log("Success on  position"+locationsFetched+"OF"+locations.length)
+                    //  console.log("Success on  position"+locationsFetched+"OF"+locations.length)
 
                     if(locations.length===locationsFetched){
                         $scope.isBusy=false;
@@ -132,7 +134,7 @@
 
                         $scope.isBusy=false;
                     }
-                  //  console.log("Error on  position"+locationsFetched+"OF"+locations.length)
+                    //  console.log("Error on  position"+locationsFetched+"OF"+locations.length)
                     locationsFetched++;
                 });
                 var wrapped=wrapLocation(locations[i]);
@@ -152,18 +154,25 @@
             $scope.$parent.reportGeneratione=false;
             $scope.$parentnoresults=false;
             //test  if  all  locations  were  selected
-
             if($scope.selectedLocations.selectedAll===true){
 
 
                 $scope.$parent.selectedSearchLocations=[];
+                $scope.$parent.selectedSearchLocationsTitle=[];
                 angular.forEach(CachedDataService.getCachedEtlLocations(),function(value,key){
                     $scope.$parent.selectedSearchLocations.push(value.location_id);
+                    //for combined locations names resolution letter in
+                    //combined report title generation
+
+                    $scope.$parent.selectedSearchLocationsTitle.push(value.name);
                 });
             }else{
                 $scope.$parent.selectedSearchLocations=[];
                 angular.forEach($scope.selectedLocations.locations,function(value,key){
                     $scope.$parent.selectedSearchLocations.push(CachedDataService.getCachedEtlLocations()[value.uuId()].location_id);
+                    //for combined locations names resolution letter in
+                    //combined report title generation
+                    $scope.$parent.selectedSearchLocationsTitle.push(value.name());
                 });
             }
             $scope.$parent.startDate=$scope.startDate;
@@ -178,6 +187,15 @@
         function handleSelectAllTongle(){
             $scope.selectedLocations.selectedAll=!$scope.selectedLocations.selectedAll;
             locationSelected();
+        }
+        function summerizeLocationsToogle(){
+            if($scope.summerize_location===true){
+                $scope.$parent.groupBy='dontgroupby';
+            }else{
+                $scope.$parent.groupBy='';
+            }
+            console.log($scope.summerize_location,$scope.$parent.groupBy)
+
         }
 
 
