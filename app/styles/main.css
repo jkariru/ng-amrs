@@ -276,3 +276,6 @@ width:100%}
   min-width: 200px;
   width: 200px;
 }
+input.ui-select-search{
+    width:100%!important;
+}
