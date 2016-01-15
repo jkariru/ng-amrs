@@ -81,7 +81,7 @@
             generateMoh731PdfReport($rootScope.selectedPdfRow.location,$rootScope.selectedPdfRow)
         });
         function buildColumns(){
-            $scope.columns=[];
+            $scope.columns=["1","2","3","5","7"];
 
             $scope.titles=[];
             _.each($scope.titles,function(header){
@@ -301,6 +301,7 @@
                 //Clean Current Bs Table Data
                 var len=$scope.TableData.length;
                 var tlen=$scope.columns.length;
+                $scope.columns.splice(0,tlen);
                 $scope.TableData.splice(0,len);
                 var tlen=$scope.columns.splice(0,tlen);
                 angular.forEach($scope.LocationData,function(actualValue,actualkey){
