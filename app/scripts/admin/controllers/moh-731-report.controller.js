@@ -176,12 +176,23 @@
          * @returns {undefined}
          */
         function generateMoh731PdfReport(locationName,rowData){
+//test if  pdf is  for  combined  locations
+            if($scope.groupBy!==''){
+                //combined  locations 
+                var params={facilityName:$scope.location_summary,
+                    district:"N/A",
+                    county:"N/A",
+                    facility:$scope.location_summary,startDate:$filter('date')($scope.startDate,"M/yy"),endDate:$filter('date')($scope.endDate,"M/yy")};
 
-            $scope.facilityData=CachedDataService.getCachedEtlLocations()[rowData["location_uuid"]];
-            var params={facilityName:$scope.facilityData.description+"",
-                district:$scope.facilityData.county_district+"",
-                county:"county",
-                facility:$scope.facilityData.description+"",startDate:$filter('date')($scope.startDate,"M/yy"),endDate:$filter('date')($scope.endDate,"M/yy")};
+            }else{
+                //normal data grouped by lcation DEFAULT
+                $scope.facilityData=CachedDataService.getCachedEtlLocations()[rowData["location_uuid"]];
+                var params={facilityName:$scope.facilityData.description+"",
+                    district:$scope.facilityData.county_district+"",
+                    county:"county",
+                    facility:$scope.facilityData.description+"",startDate:$filter('date')($scope.startDate,"M/yy"),endDate:$filter('date')($scope.endDate,"M/yy")};
+
+            }
             var mainReportjson=Moh731ReportService.generatePdfReportSchema(params);
             //generate Pdf  report
             $scope.indicatorNumber=0;
@@ -257,18 +268,19 @@
             $scope.experiencedLoadingErrors=false;
             $scope.noresults=false;
             $scope.reportGeneration=false;
+            $scope.location_summary="";
             if($scope.groupBy!==''){
                 //create the summery location name
                 var rec=0;
-                $scope.location_summary="";
+
                 _.each($scope.selectedSearchLocationsTitle,function(location){
                     if(rec===0){
-                        if($scope.selectedSearchLocations.length>1){
-                        $scope.location_summary+=location+",";
+                        if($scope.selectedSearchLocationsTitle.length>1){
+                            $scope.location_summary+=location;
                         }else{
-                         $scope.location_summary+=location;
+                            $scope.location_summary+=location;
                         }
-                       
+
                     }else{
                         $scope.location_summary+=","+location;
                     }
@@ -297,7 +309,10 @@
             if(angular.isDefined(result.result)&&result.result.length>0){
                 $scope.moh731ReportData=result.result;
                 angular.forEach(result.result,function(resultRow,key){
-                    //test location  of  the  result  row
+                    //if its a summary report results are  of combined locations
+                    if($scope.groupBy!==''){
+                        resultRow["location_uuid"]='combined locations';
+                    }
 
                     if(angular.isDefined($scope.dataSortedByLocation[resultRow.location_uuid])){
                         $scope.dataSortedByLocation[resultRow.location_uuid].push(createSummaryLocationName(resultRow));

@@ -168,6 +168,7 @@
                 });
             }else{
                 $scope.$parent.selectedSearchLocations=[];
+                 $scope.$parent.selectedSearchLocationsTitle=[];
                 angular.forEach($scope.selectedLocations.locations,function(value,key){
                     $scope.$parent.selectedSearchLocations.push(CachedDataService.getCachedEtlLocations()[value.uuId()].location_id);
                     //for combined locations names resolution letter in
