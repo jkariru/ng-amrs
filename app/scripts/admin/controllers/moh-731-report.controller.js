@@ -82,8 +82,11 @@
             generateMoh731PdfReport($rootScope.selectedPdfRow.location,$rootScope.selectedPdfRow)
         });
         function buildColumns(){
-            $scope.columns=[];
-
+            /**
+             * Dont remove  dummy  data
+             * helps  in refreshing  moh  data  table
+             */
+             $scope.columns=["1","2","3","5","7"];
             $scope.titles=[];
             _.each($scope.titles,function(header){
                 var visible=(header.location_uuid!=='location_uuid');
