@@ -65,7 +65,7 @@
                     <label  ng-hide="selectedLocations.selectedAll===true||isBusy===true"  style="margin-left:20px;
                             margin-right: 8px;
                             " for="logsum" >Combine Locations</label>
-                    <input  title="Treat selected locations as  one  location" ng-hide="selectedLocations.selectedAll===true||isBusy===true"  ng-model="summerize_location" ng-click="summerizeLocationsToogle()"  id="logsum" type="checkbox"/>
+                    <input  title="Treat selected locations as  one  location" ng-hide="isBusy===true"  ng-model="summerize_location" ng-click="summerizeLocationsToogle()"  id="logsum" type="checkbox"/>
 
                     <!--
                     <button class="btn btn-info" ng-disabled="selectedLocations.selectedAll === false && selectedLocations.locations.length === 0" ng-click="locationSelected()" style="margin-top: 2px; margin-left: 2px;">
