@@ -306,7 +306,7 @@
             $scope.reportGeneration=true;
             $scope.isBusy=false;
             $scope.dataSortedByLocation={};
-
+$scope.showcombinedTitle=($scope.groupBy!==''?true:false);
             $scope.LocationData={};
 
             if(angular.isDefined(result.result)&&result.result.length>0){
